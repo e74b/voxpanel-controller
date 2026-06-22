@@ -12,5 +12,6 @@ DB = PostgresEngine(config={
 # e.g. ['blog.piccolo_app']
 APP_REGISTRY = AppRegistry(apps=[
     "auth.piccolo_app",
-    "server.piccolo_app"
+    "server.piccolo_app",
+    "agents.piccolo_app"
     ])

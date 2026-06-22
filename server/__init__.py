@@ -8,6 +8,7 @@ from .agent_rpc import AgentRPCController
 import aio_pika
 from pydantic import BaseModel
 from typing import List
+from agents import agent_pool
 
 class State:
     STOPPING = "stopping"
@@ -89,7 +90,8 @@ async def handle_server_start(slug: str, data: TokenData = Depends(token_data)):
         return error_short("you do not own this server", 403)
     if (server["state"] != State.STOPPED):
         return error_short("server aldready starting, started or offline", 409)
-    response = await rpc.StartServer(AGENT_NAME, server["uuid"].hex)
+    agent = agent_pool.allocate()
+    response = await rpc.StartServer(agent.rpc_queue, server["uuid"].hex)
     run_id = response["ID"]
 
 

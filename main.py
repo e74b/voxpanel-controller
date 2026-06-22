@@ -5,13 +5,18 @@ import aio_pika
 
 from auth import router as auth_router
 from server import router as server_router
+from agents import router as agent_router
+
 from server import setup_server
 from auth import oauth
+from agents import agent_login_handler
 
 from piccolo_admin.endpoints import create_admin
+import asyncio
 
 async def lifespan(app: FastAPI):
     await setup_server()
+    asyncio.create_task(agent_login_handler())
     yield
 
 from auth import User, Scope
@@ -27,4 +32,5 @@ routes = [
 app = FastAPI(lifespan=lifespan)
 app.include_router(auth_router)
 app.include_router(server_router)
+app.include_router(agent_router)
 
