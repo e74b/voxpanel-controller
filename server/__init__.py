@@ -19,8 +19,6 @@ class State:
 router = APIRouter(prefix="/server", tags=["server"])
 rpc = AgentRPCController()
 
-AGENT_NAME = "agent-1"
-
 async def setup_server():
     connection = await aio_pika.connect_robust("amqp://default:password@127.0.0.1/")
     await rpc.setup(connection)
@@ -118,7 +116,7 @@ async def handle_server_stop(slug: str, data: TokenData = Depends(token_data)):
             Server.slug == slug
             )
     try:
-        response = await rpc.StopServer(AGENT_NAME, server["run_id"])
+        response = await rpc.StopServer("start." + server["run_id"], server["run_id"])
         return success_short("server stopped", response = response)
     except TimeoutError:
         return error_short("move to websocket channel", code=206, channel_id="TODO")
