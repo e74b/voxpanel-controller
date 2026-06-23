@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, WebSocket
 from asyncpg.exceptions import UniqueViolationError
 from auth import TokenData, token_data, has_perm, AuthScope, User
 from commons import success_short, error_short, APIResponse
@@ -9,6 +9,7 @@ import aio_pika
 from pydantic import BaseModel
 from typing import List
 from agents import agent_pool
+from .log_streaming import LogStreamManager
 
 class State:
     STOPPING = "stopping"
@@ -18,10 +19,12 @@ class State:
 
 router = APIRouter(prefix="/server", tags=["server"])
 rpc = AgentRPCController()
+streams = LogStreamManager()
 
 async def setup_server():
     connection = await aio_pika.connect_robust("amqp://default:password@127.0.0.1/")
     await rpc.setup(connection)
+    await streams.setup()
 
 @router.post("/create")
 async def handle_server_create(slug: str, data: TokenData = Depends(token_data)):
@@ -121,4 +124,12 @@ async def handle_server_stop(slug: str, data: TokenData = Depends(token_data)):
     except TimeoutError:
         return error_short("move to websocket channel", code=206, channel_id="TODO")
 
+@router.websocket("/logs")
+async def handle_logs(run_id: str, ws: WebSocket):
+    await ws.accept()
+    sub = await streams.subscribe("run." + run_id)
+    while True:
+        text = await sub.wait()
+        await ws.send_text(text)
 
+    await ws.close()
