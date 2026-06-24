@@ -1,13 +1,13 @@
-from fastapi import APIRouter, Depends, WebSocket
+from fastapi import APIRouter, Depends, WebSocket, Security
 from asyncpg.exceptions import UniqueViolationError
-from auth import TokenData, token_data, has_perm, AuthScope, User
+from auth import TokenData, token_data, User, Permission, get_token
 from commons import success_short, error_short, APIResponse
 from .tables import Server
 from uuid import uuid4
 from .agent_rpc import AgentRPCController
 import aio_pika
 from pydantic import BaseModel
-from typing import List
+from typing import List, Annotated
 from agents import agent_pool
 from .log_streaming import LogStreamManager
 
@@ -27,9 +27,7 @@ async def setup_server():
     await streams.setup()
 
 @router.post("/create")
-async def handle_server_create(slug: str, data: TokenData = Depends(token_data)):
-    if not has_perm(AuthScope.User.CREATE_SERVER, data.scopes):
-        return error_short("permission not granted", 403)
+async def handle_server_create(slug: str, data: Annotated[TokenData, Security(get_token, scopes=Permission.SERVER_CREATE)]):
     user = await User.objects().where(User.username == data.username).first()
     server = Server(slug=slug, uuid=uuid4(), owner=user)
     try:

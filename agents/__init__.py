@@ -1,8 +1,9 @@
 import aio_pika
 from aio_pika.abc import AbstractIncomingMessage, AbstractChannel
 from pydantic import BaseModel
-from fastapi import APIRouter, Depends
-from auth import TokenData, token_data, has_perm, AuthScope
+from fastapi import APIRouter, Depends, Security
+from auth import TokenData, get_token, Permission
+from typing import Annotated
 from commons import error_short, success_short
 from datetime import datetime
 import secrets
@@ -88,10 +89,7 @@ async def agent_login_handler():
 router = APIRouter(prefix="/agents", tags=["agent"])
 
 @router.put("/create")
-async def handle_agent_create(agent_name: str, token: TokenData = Depends(token_data)):
-    if not (has_perm(AuthScope.Admin.ADMIN, token.scopes)):
-        return error_short("invalid permissions", code=403)
-
+async def handle_agent_create(agent_name: str, token: Annotated[TokenData, Security(get_token, scopes=[Permission.AGENT_CREATE])]):
     token = secrets.token_urlsafe(32)
     agent = Agent(agent_name=agent_name, token=token, last_ping=None)
     await Agent.insert(agent)
@@ -100,9 +98,7 @@ async def handle_agent_create(agent_name: str, token: TokenData = Depends(token_
         
 
 @router.get("/list")
-async def handle_agent_list(token: TokenData = Depends(token_data)):
-    if not (has_perm(AuthScope.Admin.ADMIN, token.scopes)):
-        return error_short("invalid permissions", 403)
+async def handle_agent_list(token: Annotated[TokenData, Security(get_token, scopes=[Permission.AGENT_LIST])]):
     names = [ dict(name = agent["agent_name"], last_ping = agent["last_ping"])
             for agent in await Agent.select()]
 

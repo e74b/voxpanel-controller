@@ -1,21 +1,21 @@
 from typing import List
 
-class _SU:
+class Permission:
     ADMIN = "su:adm"
-    
-class _User:
-    CREATE_SERVER = "user:server:create"
-
-class AuthScope:
-    Admin = _SU
-    User = _User
+    SERVER_CREATE = "server:create"
+    SERVER_DELETE = "server:delete"
+    SERVER_MANUAL_ASSIGN = "server:manual_assign"
+    AGENT_CREATE = "agent:create"
+    AGENT_DELETE = "agent:delete"
+    AGENT_LIST = "agent:list"
 
 scope_docs = {
-        "su:adm": "Admin scopes, grants permissions for everything.",
-        "user:server:create": "Permission to create servers"
+        Permission.ADMIN: "Super user permissions",
+        Permission.SERVER_CREATE: "Create servers",
+        Permission.SERVER_DELETE: "Delete servers you do not own",
+        Permission.SERVER_MANUAL_ASSIGN: "Manually assign agent to server",
+        Permission.AGENT_CREATE: "Create agent login tokens",
+        Permission.AGENT_LIST: "List all available agents",
+        Permission.AGENT_DELETE: "Delete agent login tokens"
         }
 
-def has_perm(scope: str, granted: List[str]):
-    if AuthScope.Admin.ADMIN in granted:
-        return True
-    return scope in granted
