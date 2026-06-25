@@ -66,11 +66,12 @@ async def login_user(form: Annotated[OAuth2PasswordRequestForm, Depends()]):
         return error_short(detail="auth failure", code=403) 
 
     scopes = await Scope.select(Scope.scope).where(Scope.user.username == form.username)
-    scopes = {scope["scope"] for scope in scopes}
+    requested_scopes = set(form.scopes)
+    granted_scopes = {scope["scope"] for scope in scopes}
 
     token_data = {
             "username": form.username,
-            "scopes": scopes.intersection(set(form.scopes)), # grant only what is given AND what is asked
+            "scopes": list(requested_scopes.intersection(granted_scopes)), # grant only what is given AND what is asked
             }
     # TODO: Set iat and exp token
     token = jwt.encode(token_data, OSL_TOKEN)
