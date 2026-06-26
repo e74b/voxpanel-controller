@@ -97,7 +97,7 @@ def get_token(scopes: SecurityScopes, token: Annotated[TokenData, Depends(token_
     required = set(scopes.scopes)
 
     if Permission.ADMIN in granted:
-        return True
+        return token 
 
     if required.issubset(granted):
         return token
