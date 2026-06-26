@@ -1,25 +1,30 @@
 from rpc_client import RPCClient
+from ipc import IPCEngine
+from aio_pika import ExchangeType
 
-class AgentRPCController(RPCClient):
-    RPC_EXCHANGE = "control-exchange"
-    RPC_QUEUE = "control"
+class AgentRPCController():
     def __init__(self):
+        self.engine = IPCEngine()
         super().__init__()
-    async def Ping(self, agent: str, timeout = 5):
-        return await self._request(agent, "ping", {})
 
-    async def GetRunning(self, agent: str, timeout=5):
-        return await self._request(agent, "get_running", {}, timeout=timeout)
+    async def setup(self):
+        await self.engine.setup("amqp://default:password@127.0.0.1")
+        self.exchange = await self.engine.channel.declare_exchange("control", type=ExchangeType.TOPIC, durable=True)
+        await self.engine.setup_bindings(self.exchange)
 
-    async def StartServer(self, agent: str, uuid: str, timeout=5):
+    async def StartServer(self, queue: str, uuid: str, timeout=5):
+        return await self.engine.rpc("start_server", {
+            "uuid": uuid
+            }, queue, self.exchange)
+
         return await self._request(agent, "start_server", {
             "uuid": uuid
             })
         
-    async def StopServer(self, agent: str, id, timeout = 15):
-        return await self._request(agent, "stop_server", {
+    async def StopServer(self, queue: str, id, timeout = 15):
+        return await self.engine.rpc("stop_server", {
             "id": id
-            })
+            }, queue, self.exchange)
 
 
 

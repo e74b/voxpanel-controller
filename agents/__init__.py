@@ -55,7 +55,7 @@ async def login_callback(message: AbstractIncomingMessage):
         return
     print(f"Logged in as {agent.agent_name}")
     queue = await message.channel.queue_declare(durable=True, auto_delete=True, exclusive=False)
-    await message.channel.queue_bind(queue.queue, "control-exchange", queue.queue)
+    await message.channel.queue_bind(queue.queue, "control", queue.queue)
     response = LoginResponsePacket(Success=True, Name=agent.agent_name, Queue=queue.queue)
 
     await message.channel.basic_publish(

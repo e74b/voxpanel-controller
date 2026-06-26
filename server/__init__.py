@@ -22,8 +22,7 @@ rpc = AgentRPCController()
 streams = LogStreamManager()
 
 async def setup_server():
-    connection = await aio_pika.connect_robust("amqp://default:password@127.0.0.1/")
-    await rpc.setup(connection)
+    await rpc.setup()
     await streams.setup()
 
 @router.post("/create")
