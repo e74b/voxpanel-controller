@@ -18,7 +18,7 @@ import dataclasses
 @dataclasses.dataclass()
 class RpcState:
     deadline: int
-    future: asyncio.Future()
+    future: asyncio.Future
 
 class IPCEngine:
     NAME = "rpc" # name for logger
@@ -41,7 +41,6 @@ class IPCEngine:
         await self.rpc_queue.consume(self._rpc_recv)
 
     async def rpc(self, command: str, arguments: dict, routing: str, exchange: AbstractExchange, timeout = 5):
-        body = dict(Cmd=command, Arg=arguments)
         body = { "Cmd": command, "Arg": arguments }
         json_body = json.dumps(body)
         correlation_id = uuid.uuid4().hex
@@ -64,15 +63,11 @@ class IPCEngine:
             self.rpc_state.pop(correlation_id)
             raise
 
-        while self.rpc_state[correlation_id].deadline > time.monotonic():
-            result = await asyncio.wait_for(
-                    self.rpc_state[correlation_id].future,
-                    self.rpc_state[correlation_id].deadline - time.monotonic()
-                    )
-            return result
-
-        raise TimeoutError
-
+        result = await asyncio.wait_for(
+                self.rpc_state[correlation_id].future,
+                self.rpc_state[correlation_id].deadline - time.monotonic()
+                )
+        return result
 
     async def _rpc_recv(self, message: AbstractIncomingMessage):
         if message.correlation_id not in self.rpc_state:
@@ -111,13 +106,15 @@ class IPCEngine:
 
 
     async def gather(self):
-        raise NotImplemented()
+        raise NotImplementedError()
 
     async def stream(self):
-        raise NotImplemented()
+        raise NotImplementedError()
 
     async def cleanup(self):
         await self.rpc_queue.delete()
+        await self.channel.close()
+        await self.connection.close()
 
 async def rabbitmq_setup(rmq_url: str):
     connection = await aio_pika.connect_robust(rmq_url) 
@@ -128,3 +125,6 @@ async def rabbitmq_setup(rmq_url: str):
     agent_global_messaging = await channel.declare_queue("", durable=True)
     await agent_global_messaging.bind(control_exchange, routing_key="control-global", arguments={"x-message-ttl": 60})
     await channel.declare_exchange("server", ExchangeType.DIRECT, arguments={"x-message-ttl": 60})
+
+    await channel.close()
+    await connection.close()

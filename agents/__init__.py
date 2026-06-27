@@ -43,7 +43,7 @@ async def login_callback(message: AbstractIncomingMessage):
     global agent_pool
     raw_message = message.body.decode()
     await message.ack()
-    request = LoginRequestPacket.parse_raw(raw_message)
+    request = LoginRequestPacket.model_validate_json(raw_message)
     agent = await Agent.objects().where(Agent.token == request.Token).first()
     if agent is None:
         print("Login denied")

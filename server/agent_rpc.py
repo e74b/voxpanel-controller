@@ -1,4 +1,3 @@
-from rpc_client import RPCClient
 from ipc import IPCEngine
 from aio_pika import ExchangeType
 
