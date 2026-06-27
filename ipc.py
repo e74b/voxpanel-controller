@@ -3,25 +3,27 @@ import json
 import uuid
 import asyncio
 from aio_pika.abc import (
-        AbstractConnection,
-        AbstractChannel,
-        AbstractQueue,
-        ExchangeType,
-        AbstractExchange, 
-        AbstractIncomingMessage
-        )
+    AbstractConnection,
+    AbstractChannel,
+    AbstractQueue,
+    ExchangeType,
+    AbstractExchange,
+    AbstractIncomingMessage,
+)
 from pydantic import BaseModel
 import logging
 import time
 import dataclasses
+
 
 @dataclasses.dataclass()
 class RpcState:
     deadline: int
     future: asyncio.Future
 
+
 class IPCEngine:
-    NAME = "rpc" # name for logger
+    NAME = "rpc"  # name for logger
     connection: AbstractConnection
     channel: AbstractChannel
     rpc_queue: AbstractQueue
@@ -40,21 +42,25 @@ class IPCEngine:
         await self.rpc_queue.bind(self.control_exchange, self.rpc_queue.name)
         await self.rpc_queue.consume(self._rpc_recv)
 
-    async def rpc(self, command: str, arguments: dict, routing: str, exchange: AbstractExchange, timeout = 5):
-        body = { "Cmd": command, "Arg": arguments }
+    async def rpc(
+        self,
+        command: str,
+        arguments: dict,
+        routing: str,
+        exchange: AbstractExchange,
+        timeout=5,
+    ):
+        body = {"Cmd": command, "Arg": arguments}
         json_body = json.dumps(body)
         correlation_id = uuid.uuid4().hex
         print(self.rpc_queue.name)
         message = aio_pika.Message(
-                body=json_body.encode(),
-                reply_to=self.rpc_queue.name,
-                correlation_id=correlation_id
-                )
+            body=json_body.encode(),
+            reply_to=self.rpc_queue.name,
+            correlation_id=correlation_id,
+        )
 
-        state = RpcState(
-                future=asyncio.Future(),
-                deadline=time.monotonic() + timeout
-                )
+        state = RpcState(future=asyncio.Future(), deadline=time.monotonic() + timeout)
         self.rpc_state[correlation_id] = state
 
         try:
@@ -64,19 +70,23 @@ class IPCEngine:
             raise
 
         result = await asyncio.wait_for(
-                self.rpc_state[correlation_id].future,
-                self.rpc_state[correlation_id].deadline - time.monotonic()
-                )
+            self.rpc_state[correlation_id].future,
+            self.rpc_state[correlation_id].deadline - time.monotonic(),
+        )
         return result
 
     async def _rpc_recv(self, message: AbstractIncomingMessage):
         if message.correlation_id not in self.rpc_state:
-            self.logger.warning(f"received invalid rpc response addrto={message.correlation_id}")
+            self.logger.warning(
+                f"received invalid rpc response addrto={message.correlation_id}"
+            )
             return
 
         future = self.rpc_state[message.correlation_id].future
-        if(future.done()):
-            self.logger.warning(f"received multiple responses for rpc req addrto={message.correlation_id}")
+        if future.done():
+            self.logger.warning(
+                f"received multiple responses for rpc req addrto={message.correlation_id}"
+            )
             return
 
         is_meta = message.headers.get("x-meta", False)
@@ -84,7 +94,9 @@ class IPCEngine:
         try:
             body = json.loads(message.body.decode())
         except json.JSONDecodeError:
-            self.logger.error(f"failed to decode as json addrto={message.correlation_id}")
+            self.logger.error(
+                f"failed to decode as json addrto={message.correlation_id}"
+            )
             return
 
         if not is_meta:
@@ -104,7 +116,6 @@ class IPCEngine:
         else:
             self.logger.warning("unknown meta command")
 
-
     async def gather(self):
         raise NotImplementedError()
 
@@ -116,15 +127,20 @@ class IPCEngine:
         await self.channel.close()
         await self.connection.close()
 
+
 async def rabbitmq_setup(rmq_url: str):
-    connection = await aio_pika.connect_robust(rmq_url) 
+    connection = await aio_pika.connect_robust(rmq_url)
     channel = await connection.channel()
 
     await channel.declare_exchange("logs", ExchangeType.FANOUT)
     control_exchange = await channel.declare_exchange("control", ExchangeType.TOPIC)
     agent_global_messaging = await channel.declare_queue("", durable=True)
-    await agent_global_messaging.bind(control_exchange, routing_key="control-global", arguments={"x-message-ttl": 60})
-    await channel.declare_exchange("server", ExchangeType.DIRECT, arguments={"x-message-ttl": 60})
+    await agent_global_messaging.bind(
+        control_exchange, routing_key="control-global", arguments={"x-message-ttl": 60}
+    )
+    await channel.declare_exchange(
+        "server", ExchangeType.DIRECT, arguments={"x-message-ttl": 60}
+    )
 
     await channel.close()
     await connection.close()

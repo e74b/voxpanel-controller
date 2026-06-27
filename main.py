@@ -14,23 +14,24 @@ from agents import agent_login_handler
 from piccolo_admin.endpoints import create_admin
 import asyncio
 
+
 async def lifespan(app: FastAPI):
     await setup_server()
     asyncio.create_task(agent_login_handler())
     yield
 
+
 from auth import User, Scope
 from server import Server
 
 routes = [
-        Mount(path="/admin", app=create_admin(
-            tables=[User, Scope, Server],
-            site_name="Piccolo Admin"
-            ))
-        ]
+    Mount(
+        path="/admin",
+        app=create_admin(tables=[User, Scope, Server], site_name="Piccolo Admin"),
+    )
+]
 
 app = FastAPI(lifespan=lifespan)
 app.include_router(auth_router)
 app.include_router(server_router)
 app.include_router(agent_router)
-

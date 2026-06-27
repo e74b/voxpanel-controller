@@ -1,8 +1,9 @@
 import aio_pika
 from aio_pika.abc import AbstractConnection, AbstractChannel, AbstractIncomingMessage
-from asyncio import Queue 
+from asyncio import Queue
 
-class LogSubscription():
+
+class LogSubscription:
     channel: AbstractChannel
     queue: Queue
 
@@ -18,15 +19,17 @@ class LogSubscription():
     async def wait(self) -> str:
         return await self.queue.get()
 
-class LogStreamManager():
-    connection: AbstractConnection = None # Make connection a static variable
+
+class LogStreamManager:
+    connection: AbstractConnection = None  # Make connection a static variable
 
     async def setup(self):
-        self.connection = await aio_pika.connect_robust("amqp://default:password@127.0.0.1/")
+        self.connection = await aio_pika.connect_robust(
+            "amqp://default:password@127.0.0.1/"
+        )
 
     async def subscribe(self, queue) -> LogSubscription:
         subscription = LogSubscription()
         subscription.channel = await self.connection.channel()
         await subscription.setup(queue)
         return subscription
-

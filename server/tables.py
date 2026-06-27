@@ -2,6 +2,7 @@ from piccolo.table import Table
 from piccolo.columns import Varchar, Text, ForeignKey, UUID
 from auth.tables import User
 
+
 class Server(Table):
     slug = Varchar(unique=True)
     uuid = UUID()

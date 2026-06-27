@@ -13,9 +13,7 @@ async def forwards():
         migration_id=ID, app_name="agents", description=DESCRIPTION
     )
 
-    manager.add_table(
-        class_name="Agent", tablename="agent", schema=None, columns=None
-    )
+    manager.add_table(class_name="Agent", tablename="agent", schema=None, columns=None)
 
     manager.add_column(
         table_class_name="Agent",
