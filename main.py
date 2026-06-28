@@ -12,10 +12,15 @@ from auth import oauth
 from agents import agent_login_handler
 
 from piccolo_admin.endpoints import create_admin
+from piccolo.engine import engine_finder
 import asyncio
 
+async def database_connection_test():
+    engine = engine_finder()
+    await engine.start_connection_pool()
 
 async def lifespan(app: FastAPI):
+    await database_connection_test()
     await setup_server()
     asyncio.create_task(agent_login_handler())
     yield

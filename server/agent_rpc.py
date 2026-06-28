@@ -1,5 +1,6 @@
 from ipc import IPCEngine
 from aio_pika import ExchangeType
+from config import RMQ_URL
 
 
 class AgentRPCController:
@@ -8,7 +9,7 @@ class AgentRPCController:
         super().__init__()
 
     async def setup(self):
-        await self.engine.setup("amqp://default:password@127.0.0.1")
+        await self.engine.setup(RMQ_URL)
         self.exchange = await self.engine.channel.declare_exchange(
             "control", type=ExchangeType.TOPIC, durable=True
         )

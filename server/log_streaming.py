@@ -1,6 +1,7 @@
 import aio_pika
 from aio_pika.abc import AbstractConnection, AbstractChannel, AbstractIncomingMessage
 from asyncio import Queue
+from config import RMQ_URL
 
 
 class LogSubscription:
@@ -24,9 +25,7 @@ class LogStreamManager:
     connection: AbstractConnection = None  # Make connection a static variable
 
     async def setup(self):
-        self.connection = await aio_pika.connect_robust(
-            "amqp://default:password@127.0.0.1/"
-        )
+        self.connection = await aio_pika.connect_robust(RMQ_URL)
 
     async def subscribe(self, queue) -> LogSubscription:
         subscription = LogSubscription()

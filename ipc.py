@@ -14,6 +14,14 @@ from pydantic import BaseModel
 import logging
 import time
 import dataclasses
+from config import (
+        RMQ_CONTROL_EXCHANGE,
+        RMQ_LOG_EXCHANGE,
+        RMQ_SERVER_EXCHANGE,
+        RMQ_AGENT_GLOBAL,
+        RMQ_AGENT_MSG_TTL,
+        RMQ_SERVER_MSG_TTL
+        )
 
 
 @dataclasses.dataclass()
@@ -132,14 +140,14 @@ async def rabbitmq_setup(rmq_url: str):
     connection = await aio_pika.connect_robust(rmq_url)
     channel = await connection.channel()
 
-    await channel.declare_exchange("logs", ExchangeType.FANOUT)
-    control_exchange = await channel.declare_exchange("control", ExchangeType.TOPIC)
+    await channel.declare_exchange(RMQ_LOG_EXCHANGE, ExchangeType.FANOUT)
+    control_exchange = await channel.declare_exchange(RMQ_CONTROL_EXCHANGE, ExchangeType.TOPIC)
     agent_global_messaging = await channel.declare_queue("", durable=True)
     await agent_global_messaging.bind(
-        control_exchange, routing_key="control-global", arguments={"x-message-ttl": 60}
+        control_exchange, routing_key=RMQ_AGENT_GLOBAL, arguments={"x-message-ttl": RMQ_AGENT_MSG_TTL}
     )
     await channel.declare_exchange(
-        "server", ExchangeType.DIRECT, arguments={"x-message-ttl": 60}
+        RMQ_SERVER_EXCHANGE, ExchangeType.DIRECT, arguments={"x-message-ttl": RMQ_SERVER_MSG_TTL}
     )
 
     await channel.close()

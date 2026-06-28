@@ -13,8 +13,7 @@ from .scopes import Permission, scope_docs
 import hashlib
 import jwt
 from pydantic import BaseModel
-
-OSL_TOKEN = "28a42ae5c72119d32ba65399699c26b903ee4ffc431607997b92e02b0d246b5d"
+from config import JWT_SECRET
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 oauth = OAuth2PasswordBearer(tokenUrl="/auth/login", scopes=scope_docs)
@@ -78,7 +77,7 @@ async def login_user(form: Annotated[OAuth2PasswordRequestForm, Depends()]):
         ),  # grant only what is given AND what is asked
     }
     # TODO: Set iat and exp token
-    token = jwt.encode(token_data, OSL_TOKEN)
+    token = jwt.encode(token_data, JWT_SECRET)
     return success_short(token_type="bearer", access_token=token, **token_data)
 
 
@@ -95,7 +94,7 @@ class TokenData:
 
 
 def token_data(token: str = Depends(oauth)) -> TokenData:
-    raw_data = jwt.decode(token, OSL_TOKEN, algorithms=["HS256"])
+    raw_data = jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
     data = TokenData(**raw_data)
     return data
 

@@ -1,7 +1,8 @@
 from piccolo.conf.apps import AppRegistry
 from piccolo.engine.postgres import PostgresEngine
+from config import POSTGRES_URL
 
-URL = "postgresql://default:password@127.0.0.1:5432/voxpanel"
+URL = POSTGRES_URL 
 DB = PostgresEngine(config={"dsn": URL})
 
 

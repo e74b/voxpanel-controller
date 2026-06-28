@@ -8,6 +8,7 @@ from commons import error_short, success_short
 from datetime import datetime
 import secrets
 from .tables import Agent
+from config import RMQ_URL
 
 
 class LoginRequestPacket(BaseModel):
@@ -80,7 +81,7 @@ async def login_callback(message: AbstractIncomingMessage):
 
 async def agent_login_handler():
     print("Starting login handler")
-    connection = await aio_pika.connect_robust("amqp://default:password@127.0.0.1/")
+    connection = await aio_pika.connect_robust(RMQ_URL)
     channel = await connection.channel()
     exchange = await channel.declare_exchange(
         "formation",
@@ -89,6 +90,7 @@ async def agent_login_handler():
         auto_delete=False,
         arguments={"x-message-ttl": 0},
     )
+    # TODO: Move away from formation control
     queue = await channel.declare_queue("formation-control", durable=True)
     await queue.bind(exchange, "formation-control")
     print("reached consume")
